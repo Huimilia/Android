@@ -20,6 +20,17 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.Toast;
 
+import android.Manifest;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CaptureRequest;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.view.Surface;
+import android.content.pm.PackageManager;
+
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -73,6 +84,45 @@ public class MainActivity extends CatimaAppCompatActivity implements LoyaltyCard
 
     private ActivityResultLauncher<Intent> mBarcodeScannerLauncher;
     private ActivityResultLauncher<Intent> mSettingsLauncher;
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            try {
+                String cameraId = cameraManager.getCameraIdList()[0]; // Assume the device has a camera and use the first one
+                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    Activity#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for Activity#requestPermissions for more details.
+                    return;
+                }
+                cameraManager.openCamera(cameraId, new CameraDevice.StateCallback() {
+                    @Override
+                    public void onOpened(CameraDevice camera) {
+                        // Camera opened successfully. Here we should start the camera preview.
+                    }
+
+                    @Override
+                    public void onDisconnected(CameraDevice camera) {
+                        camera.close();
+                    }
+
+                    @Override
+                    public void onError(CameraDevice camera, int error) {
+                        camera.close();
+                    }
+                }, null); // Use a background handler to avoid blocking the UI thread
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     private ActionMode.Callback mCurrentActionModeCallback = new ActionMode.Callback() {
         @Override
